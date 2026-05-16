@@ -104,6 +104,12 @@ Save a report locally:
 python -m financial_specialist_agent.cli --task save_report --format text --output monthly_report.txt --params '{"report_data": {"summary": "Monthly plan", "surplus": 1500}}'
 ```
 
+Save a customized report with a template:
+
+```bash
+python -m financial_specialist_agent.cli --task save_report --format text --output monthly_report.txt --template "Summary: {summary}\nSurplus: ${surplus}\n" --params '{"report_data": {"summary": "Monthly plan", "surplus": 1500}}'
+```
+
 Schedule a report file:
 
 ```bash

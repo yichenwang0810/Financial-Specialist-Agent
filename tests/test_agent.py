@@ -83,6 +83,29 @@ class TestFinancialSpecialistAgent(unittest.TestCase):
         report = agent.export_report({"summary": "Test report", "value": 100}, format="text")
         self.assertIn("summary: Test report", report)
 
+    def test_export_report_with_template(self):
+        agent = FinancialSpecialistAgent()
+        report = agent.export_report(
+            {"summary": "Template report", "total": 100},
+            format="text",
+            template="Report: {summary}\nTotal: ${total}\n"
+        )
+        self.assertIn("Report: Template report", report)
+        self.assertIn("Total: $100", report)
+
+    def test_compose_email_report_with_template(self):
+        agent = FinancialSpecialistAgent()
+        raw_email = agent.compose_email_report(
+            {"summary": "Email template"},
+            "Template Subject",
+            "recipient@example.com",
+            "sender@example.com",
+            format="text",
+            template="Summary: {summary}\n"
+        )
+        self.assertIn("Subject: Template Subject", raw_email)
+        self.assertIn("Summary: Email template", raw_email)
+
     def test_interactive_assessment_is_callable(self):
         agent = FinancialSpecialistAgent()
         self.assertTrue(callable(agent.interactive_assessment))

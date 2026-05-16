@@ -12,6 +12,11 @@ except ImportError:  # pragma: no cover
     openai = None
 
 
+class _SafeDict(dict):
+    def __missing__(self, key):
+        return ""
+
+
 class FinancialSpecialistAgent:
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
@@ -329,10 +334,45 @@ class FinancialSpecialistAgent:
 
         return "\n".join(plan_lines)
 
-    def export_report(self, report_data: Dict[str, Any], format: str = "json") -> str:
+    def _build_template_context(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+        context: Dict[str, Any] = {}
+
+        def flatten(prefix: str, value: Any) -> None:
+            if isinstance(value, dict):
+                for key, sub_value in value.items():
+                    flatten(f"{prefix}{key}_", sub_value)
+                return
+            context[prefix[:-1] if prefix.endswith("_") else prefix] = value
+
+        flatten("", report_data)
+        for key, value in report_data.items():
+            if not isinstance(value, dict):
+                context[key] = value
+        return context
+
+    def export_report(
+        self,
+        report_data: Dict[str, Any],
+        format: str = "json",
+        template: Optional[str] = None,
+        template_path: Optional[str] = None,
+    ) -> str:
         supported_formats = {"json", "text"}
         if format not in supported_formats:
             return f"Unsupported report format '{format}'. Supported formats are: {', '.join(supported_formats)}."
+
+        if template_path:
+            try:
+                with open(template_path, "r", encoding="utf-8") as handle:
+                    template = handle.read()
+            except OSError as exc:
+                return f"Unable to read template file {template_path}: {exc}"
+
+        if template:
+            if format != "text":
+                return "Report templates are only supported for text format."
+            context = self._build_template_context(report_data)
+            return template.format_map(_SafeDict(context))
 
         if format == "json":
             return json.dumps(report_data, indent=2)
@@ -347,9 +387,16 @@ class FinancialSpecialistAgent:
                 lines.append(f"{key}: {value}")
         return "\n".join(lines)
 
-    def save_report(self, report_data: Dict[str, Any], output_path: str, format: str = "json") -> str:
-        content = self.export_report(report_data, format=format)
-        if content.startswith("Unsupported report format"):
+    def save_report(
+        self,
+        report_data: Dict[str, Any],
+        output_path: str,
+        format: str = "json",
+        template: Optional[str] = None,
+        template_path: Optional[str] = None,
+    ) -> str:
+        content = self.export_report(report_data, format=format, template=template, template_path=template_path)
+        if content.startswith("Unsupported report format") or content.startswith("Report templates are only supported") or content.startswith("Unable to read template file"):
             return content
 
         try:
@@ -366,8 +413,10 @@ class FinancialSpecialistAgent:
         output_path: str,
         frequency: str = "monthly",
         format: str = "json",
+        template: Optional[str] = None,
+        template_path: Optional[str] = None,
     ) -> str:
-        saved = self.save_report(report_data, output_path, format=format)
+        saved = self.save_report(report_data, output_path, format=format, template=template, template_path=template_path)
         if not saved.startswith("Report saved"):
             return saved
 
@@ -393,12 +442,14 @@ class FinancialSpecialistAgent:
         recipient: str,
         sender: str,
         format: str = "text",
+        template: Optional[str] = None,
+        template_path: Optional[str] = None,
     ) -> str:
         if not subject or not recipient or not sender:
             return "Subject, sender, and recipient are required to compose an email report."
 
-        body = self.export_report(report_data, format=format)
-        if body.startswith("Unsupported report format"):
+        body = self.export_report(report_data, format=format, template=template, template_path=template_path)
+        if body.startswith("Unsupported report format") or body.startswith("Report templates are only supported") or body.startswith("Unable to read template file"):
             return body
 
         message = EmailMessage()
@@ -419,6 +470,8 @@ class FinancialSpecialistAgent:
         smtp_username: Optional[str] = None,
         smtp_password: Optional[str] = None,
         format: str = "text",
+        template: Optional[str] = None,
+        template_path: Optional[str] = None,
     ) -> str:
         smtp_server = smtp_server or os.getenv("SMTP_SERVER")
         smtp_port = smtp_port or int(os.getenv("SMTP_PORT", "0"))
@@ -430,8 +483,8 @@ class FinancialSpecialistAgent:
         if not sender or not recipient or not subject:
             return "Sender, recipient, and subject are required to send email."
 
-        body = self.export_report(report_data, format=format)
-        if body.startswith("Unsupported report format"):
+        body = self.export_report(report_data, format=format, template=template, template_path=template_path)
+        if body.startswith("Unsupported report format") or body.startswith("Report templates are only supported") or body.startswith("Unable to read template file"):
             return body
 
         message = EmailMessage()

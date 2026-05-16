@@ -26,6 +26,16 @@ def parse_args() -> argparse.Namespace:
         type=str,
     )
     parser.add_argument(
+        "--template",
+        help="Report body template string for text format tasks.",
+        type=str,
+    )
+    parser.add_argument(
+        "--template-file",
+        help="Path to a template file for text format report tasks.",
+        type=str,
+    )
+    parser.add_argument(
         "--output",
         help="Path to write saved or scheduled report output.",
         type=str,
@@ -168,17 +178,17 @@ def main() -> None:
         return
 
     if args.task == "report":
-        print(agent.export_report(params.get("report_data", {}), format=args.format))
+        print(agent.export_report(params.get("report_data", {}), format=args.format, template=args.template, template_path=args.template_file))
         return
 
     if args.task == "save_report":
         output = args.output or params.get("output", "report.json")
-        print(agent.save_report(params.get("report_data", {}), output, format=args.format))
+        print(agent.save_report(params.get("report_data", {}), output, format=args.format, template=args.template, template_path=args.template_file))
         return
 
     if args.task == "schedule":
         output = args.output or params.get("output", "scheduled_report.json")
-        print(agent.schedule_report(params.get("report_data", {}), output, frequency=args.frequency, format=args.format))
+        print(agent.schedule_report(params.get("report_data", {}), output, frequency=args.frequency, format=args.format, template=args.template, template_path=args.template_file))
         return
 
     if args.task == "email":
@@ -192,6 +202,8 @@ def main() -> None:
             smtp_username=args.smtp_username or params.get("smtp_username"),
             smtp_password=args.smtp_password or params.get("smtp_password"),
             format=args.format,
+            template=args.template,
+            template_path=args.template_file,
         ))
         return
 
