@@ -98,6 +98,24 @@ Assess insurance needs:
 python -m financial_specialist_agent.cli --task insurance --params '{"annual_income": 90000, "dependents": 2, "assets_value": 150000, "has_life_insurance": false}'
 ```
 
+Save a report locally:
+
+```bash
+python -m financial_specialist_agent.cli --task save_report --format text --output monthly_report.txt --params '{"report_data": {"summary": "Monthly plan", "surplus": 1500}}'
+```
+
+Schedule a report file:
+
+```bash
+python -m financial_specialist_agent.cli --task schedule --format json --output scheduled_report.json --frequency monthly --params '{"report_data": {"summary": "Monthly plan", "surplus": 1500}}'
+```
+
+Send a report email:
+
+```bash
+python -m financial_specialist_agent.cli --task email --format text --subject "Monthly Financial Report" --sender "sender@example.com" --recipient "recipient@example.com" --smtp-server "smtp.example.com" --smtp-port 587 --smtp-username "user" --smtp-password "pass" --params '{"report_data": {"summary": "Monthly plan", "surplus": 1500}}'
+```
+
 Build a financial goals plan:
 
 ```bash

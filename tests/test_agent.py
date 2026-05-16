@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 from financial_specialist_agent.agent import FinancialSpecialistAgent
 
@@ -84,3 +86,33 @@ class TestFinancialSpecialistAgent(unittest.TestCase):
     def test_interactive_assessment_is_callable(self):
         agent = FinancialSpecialistAgent()
         self.assertTrue(callable(agent.interactive_assessment))
+
+    def test_save_report_writes_file(self):
+        agent = FinancialSpecialistAgent()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "report.txt")
+            result = agent.save_report({"summary": "Save test"}, path, format="text")
+            self.assertIn("Report saved", result)
+            with open(path, "r", encoding="utf-8") as handle:
+                self.assertIn("summary: Save test", handle.read())
+
+    def test_schedule_report_writes_metadata(self):
+        agent = FinancialSpecialistAgent()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "scheduled_report.json")
+            result = agent.schedule_report({"summary": "Scheduled test"}, path, frequency="weekly", format="json")
+            self.assertIn("Scheduled report metadata written", result)
+            self.assertTrue(os.path.exists(f"{path}.schedule.json"))
+
+    def test_compose_email_report_contains_headers(self):
+        agent = FinancialSpecialistAgent()
+        raw_email = agent.compose_email_report(
+            {"summary": "Email test"},
+            "Report Subject",
+            "recipient@example.com",
+            "sender@example.com",
+            format="text",
+        )
+        self.assertIn("Subject: Report Subject", raw_email)
+        self.assertIn("To: recipient@example.com", raw_email)
+        self.assertIn("summary: Email test", raw_email)

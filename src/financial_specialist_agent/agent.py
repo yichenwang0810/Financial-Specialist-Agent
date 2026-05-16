@@ -1,5 +1,9 @@
+import datetime
 import json
 import os
+import smtplib
+import ssl
+from email.message import EmailMessage
 from typing import Any, Dict, List, Optional
 
 try:
@@ -342,6 +346,119 @@ class FinancialSpecialistAgent:
             else:
                 lines.append(f"{key}: {value}")
         return "\n".join(lines)
+
+    def save_report(self, report_data: Dict[str, Any], output_path: str, format: str = "json") -> str:
+        content = self.export_report(report_data, format=format)
+        if content.startswith("Unsupported report format"):
+            return content
+
+        try:
+            with open(output_path, "w", encoding="utf-8") as handle:
+                handle.write(content)
+        except OSError as exc:
+            return f"Unable to save report to {output_path}: {exc}"
+
+        return f"Report saved to {output_path}."
+
+    def schedule_report(
+        self,
+        report_data: Dict[str, Any],
+        output_path: str,
+        frequency: str = "monthly",
+        format: str = "json",
+    ) -> str:
+        saved = self.save_report(report_data, output_path, format=format)
+        if not saved.startswith("Report saved"):
+            return saved
+
+        metadata = {
+            "frequency": frequency,
+            "output_path": output_path,
+            "format": format,
+            "scheduled_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+        metadata_path = f"{output_path}.schedule.json"
+        try:
+            with open(metadata_path, "w", encoding="utf-8") as handle:
+                json.dump(metadata, handle, indent=2)
+        except OSError as exc:
+            return f"{saved} Unable to write schedule metadata: {exc}"
+
+        return f"{saved} Scheduled report metadata written to {metadata_path}."
+
+    def compose_email_report(
+        self,
+        report_data: Dict[str, Any],
+        subject: str,
+        recipient: str,
+        sender: str,
+        format: str = "text",
+    ) -> str:
+        if not subject or not recipient or not sender:
+            return "Subject, sender, and recipient are required to compose an email report."
+
+        body = self.export_report(report_data, format=format)
+        if body.startswith("Unsupported report format"):
+            return body
+
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = sender
+        message["To"] = recipient
+        message.set_content(body)
+        return message.as_string()
+
+    def send_email_report(
+        self,
+        report_data: Dict[str, Any],
+        subject: str,
+        recipient: str,
+        sender: str,
+        smtp_server: Optional[str] = None,
+        smtp_port: Optional[int] = None,
+        smtp_username: Optional[str] = None,
+        smtp_password: Optional[str] = None,
+        format: str = "text",
+    ) -> str:
+        smtp_server = smtp_server or os.getenv("SMTP_SERVER")
+        smtp_port = smtp_port or int(os.getenv("SMTP_PORT", "0"))
+        smtp_username = smtp_username or os.getenv("SMTP_USERNAME")
+        smtp_password = smtp_password or os.getenv("SMTP_PASSWORD")
+
+        if not smtp_server or smtp_port <= 0:
+            return "SMTP server and port must be configured to send email."
+        if not sender or not recipient or not subject:
+            return "Sender, recipient, and subject are required to send email."
+
+        body = self.export_report(report_data, format=format)
+        if body.startswith("Unsupported report format"):
+            return body
+
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = sender
+        message["To"] = recipient
+        message.set_content(body)
+
+        try:
+            if smtp_port == 465:
+                context = ssl.create_default_context()
+                with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as smtp:
+                    if smtp_username and smtp_password:
+                        smtp.login(smtp_username, smtp_password)
+                    smtp.send_message(message)
+            else:
+                with smtplib.SMTP(smtp_server, smtp_port) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls(context=ssl.create_default_context())
+                    smtp.ehlo()
+                    if smtp_username and smtp_password:
+                        smtp.login(smtp_username, smtp_password)
+                    smtp.send_message(message)
+        except Exception as exc:
+            return f"Failed to send email: {exc}"
+
+        return f"Email sent to {recipient} via {smtp_server}:{smtp_port}."
 
     def ask(self, question: str) -> str:
         question = question.strip()

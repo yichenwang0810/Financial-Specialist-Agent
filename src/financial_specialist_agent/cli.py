@@ -14,8 +14,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--task",
-        help="Run a specific financial analysis task: budget, retirement, debt, allocation, savings, networth, insurance, cashflow, plan, or report.",
-        choices=["question", "budget", "retirement", "debt", "allocation", "savings", "networth", "insurance", "cashflow", "plan", "report"],
+        help="Run a specific financial analysis task: budget, retirement, debt, allocation, savings, networth, insurance, cashflow, plan, report, save_report, schedule, or email.",
+        choices=["question", "budget", "retirement", "debt", "allocation", "savings", "networth", "insurance", "cashflow", "plan", "report", "save_report", "schedule", "email"],
         default="question",
     )
     parser.add_argument(
@@ -23,6 +23,52 @@ def parse_args() -> argparse.Namespace:
         help="Report export format for the report task: json or text.",
         choices=["json", "text"],
         default="json",
+        type=str,
+    )
+    parser.add_argument(
+        "--output",
+        help="Path to write saved or scheduled report output.",
+        type=str,
+    )
+    parser.add_argument(
+        "--frequency",
+        help="Reporting frequency when scheduling a report (e.g. monthly, weekly).",
+        type=str,
+        default="monthly",
+    )
+    parser.add_argument(
+        "--subject",
+        help="Email subject for the email task.",
+        type=str,
+    )
+    parser.add_argument(
+        "--sender",
+        help="Sender email address for the email task.",
+        type=str,
+    )
+    parser.add_argument(
+        "--recipient",
+        help="Recipient email address for the email task.",
+        type=str,
+    )
+    parser.add_argument(
+        "--smtp-server",
+        help="SMTP server host for sending email.",
+        type=str,
+    )
+    parser.add_argument(
+        "--smtp-port",
+        help="SMTP server port for sending email.",
+        type=int,
+    )
+    parser.add_argument(
+        "--smtp-username",
+        help="SMTP username for sending email.",
+        type=str,
+    )
+    parser.add_argument(
+        "--smtp-password",
+        help="SMTP password for sending email.",
         type=str,
     )
     parser.add_argument(
@@ -123,6 +169,30 @@ def main() -> None:
 
     if args.task == "report":
         print(agent.export_report(params.get("report_data", {}), format=args.format))
+        return
+
+    if args.task == "save_report":
+        output = args.output or params.get("output", "report.json")
+        print(agent.save_report(params.get("report_data", {}), output, format=args.format))
+        return
+
+    if args.task == "schedule":
+        output = args.output or params.get("output", "scheduled_report.json")
+        print(agent.schedule_report(params.get("report_data", {}), output, frequency=args.frequency, format=args.format))
+        return
+
+    if args.task == "email":
+        print(agent.send_email_report(
+            params.get("report_data", {}),
+            args.subject or params.get("subject", "Financial Report"),
+            args.recipient or params.get("recipient", ""),
+            args.sender or params.get("sender", ""),
+            smtp_server=args.smtp_server or params.get("smtp_server"),
+            smtp_port=args.smtp_port or params.get("smtp_port"),
+            smtp_username=args.smtp_username or params.get("smtp_username"),
+            smtp_password=args.smtp_password or params.get("smtp_password"),
+            format=args.format,
+        ))
         return
 
     if args.task == "networth":
