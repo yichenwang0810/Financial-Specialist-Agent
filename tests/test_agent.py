@@ -62,6 +62,25 @@ class TestFinancialSpecialistAgent(unittest.TestCase):
         result = agent.evaluate_insurance_needs(85000, 2, 120000, False)
         self.assertIn("estimated life insurance coverage need", result.lower())
 
+    def test_create_financial_plan_with_surplus(self):
+        agent = FinancialSpecialistAgent()
+        result = agent.create_financial_plan(
+            [{"name": "Emergency Fund", "amount": 12000, "target_months": 12, "priority": 1}],
+            7000,
+            {"housing": 1800, "food": 600, "transportation": 400},
+        )
+        self.assertIn("monthly surplus available for goals", result.lower())
+
+    def test_export_report_json(self):
+        agent = FinancialSpecialistAgent()
+        report = agent.export_report({"summary": "Test report", "value": 100}, format="json")
+        self.assertIn('"summary": "Test report"', report)
+
+    def test_export_report_text(self):
+        agent = FinancialSpecialistAgent()
+        report = agent.export_report({"summary": "Test report", "value": 100}, format="text")
+        self.assertIn("summary: Test report", report)
+
     def test_interactive_assessment_is_callable(self):
         agent = FinancialSpecialistAgent()
         self.assertTrue(callable(agent.interactive_assessment))

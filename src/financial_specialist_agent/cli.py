@@ -14,9 +14,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--task",
-        help="Run a specific financial analysis task: budget, retirement, debt, allocation, savings, networth, insurance, or cashflow.",
-        choices=["question", "budget", "retirement", "debt", "allocation", "savings", "networth", "insurance", "cashflow"],
+        help="Run a specific financial analysis task: budget, retirement, debt, allocation, savings, networth, insurance, cashflow, plan, or report.",
+        choices=["question", "budget", "retirement", "debt", "allocation", "savings", "networth", "insurance", "cashflow", "plan", "report"],
         default="question",
+    )
+    parser.add_argument(
+        "--format",
+        help="Report export format for the report task: json or text.",
+        choices=["json", "text"],
+        default="json",
+        type=str,
     )
     parser.add_argument(
         "--params",
@@ -104,6 +111,18 @@ def main() -> None:
             params.get("annual_return", 0.05),
             params.get("target_months"),
         ))
+        return
+
+    if args.task == "plan":
+        print(agent.create_financial_plan(
+            params.get("goals", []),
+            params.get("monthly_income", 0.0),
+            params.get("monthly_expenses", {}),
+        ))
+        return
+
+    if args.task == "report":
+        print(agent.export_report(params.get("report_data", {}), format=args.format))
         return
 
     if args.task == "networth":

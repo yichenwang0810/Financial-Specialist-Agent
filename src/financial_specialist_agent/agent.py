@@ -273,6 +273,76 @@ class FinancialSpecialistAgent:
         )
         return "\n".join(summary)
 
+    def create_financial_plan(
+        self,
+        goals: List[Dict[str, Any]],
+        monthly_income: float,
+        monthly_expenses: Dict[str, float],
+    ) -> str:
+        if monthly_income < 0 or any(value < 0 for value in monthly_expenses.values()):
+            return "Income and expense values must be non-negative."
+        if not goals:
+            return "Provide at least one financial goal to build a plan."
+
+        surplus = monthly_income - sum(monthly_expenses.values())
+        if surplus <= 0:
+            return (
+                "Your current expenses equal or exceed income, so there is no surplus available for goal funding. "
+                "Review your budget to reduce spending or increase income before building a goal plan."
+            )
+
+        sorted_goals = sorted(
+            goals,
+            key=lambda goal: (goal.get("priority", 10), goal.get("target_months", 999)),
+        )
+        plan_lines = [
+            f"Monthly surplus available for goals: ${surplus:,.2f}",
+            "Goal funding plan:"
+        ]
+
+        total_required = 0.0
+        for goal in sorted_goals:
+            name = goal.get("name", "Goal")
+            amount = goal.get("amount", 0.0)
+            target_months = goal.get("target_months", 12)
+            if amount <= 0 or target_months <= 0:
+                continue
+            monthly_needed = amount / target_months
+            total_required += monthly_needed
+            plan_lines.append(
+                f"- {name}: ${amount:,.2f} in {target_months} months requires ${monthly_needed:,.2f} per month."
+            )
+
+        if total_required <= surplus:
+            plan_lines.append(
+                "Your current surplus is sufficient to fund these goals. Allocate the monthly amounts and review progress quarterly."
+            )
+        else:
+            plan_lines.append(
+                f"Your goals require ${total_required:,.2f} per month, which exceeds the available surplus. "
+                "Prioritize the highest-value goals, extend timelines, or increase savings to avoid overcommitment."
+            )
+
+        return "\n".join(plan_lines)
+
+    def export_report(self, report_data: Dict[str, Any], format: str = "json") -> str:
+        supported_formats = {"json", "text"}
+        if format not in supported_formats:
+            return f"Unsupported report format '{format}'. Supported formats are: {', '.join(supported_formats)}."
+
+        if format == "json":
+            return json.dumps(report_data, indent=2)
+
+        lines: List[str] = []
+        for key, value in report_data.items():
+            if isinstance(value, dict):
+                lines.append(f"{key}:")
+                for sub_key, sub_value in value.items():
+                    lines.append(f"  {sub_key}: {sub_value}")
+            else:
+                lines.append(f"{key}: {value}")
+        return "\n".join(lines)
+
     def ask(self, question: str) -> str:
         question = question.strip()
         if not question:
