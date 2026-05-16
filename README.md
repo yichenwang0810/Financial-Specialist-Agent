@@ -44,6 +44,30 @@ Start an interactive session:
 python -m financial_specialist_agent.cli --interactive
 ```
 
+Run a budget analysis task:
+
+```bash
+python -m financial_specialist_agent.cli --task budget --params '{"income": 5000, "expenses": {"housing": 1500, "food": 600, "transportation": 300}}'
+```
+
+Calculate retirement savings projections:
+
+```bash
+python -m financial_specialist_agent.cli --task retirement --params '{"current_age": 35, "retirement_age": 65, "current_savings": 40000, "monthly_contribution": 800, "annual_return": 0.06}'
+```
+
+Develop a debt repayment strategy:
+
+```bash
+python -m financial_specialist_agent.cli --task debt --params '{"debts": [{"name": "Credit Card", "balance": 6500, "rate": 19.5}, {"name": "Student Loan", "balance": 18000, "rate": 4.2}], "extra_payment": 200}'
+```
+
+Create an asset allocation recommendation:
+
+```bash
+python -m financial_specialist_agent.cli --task allocation --params '{"risk_tolerance": "moderate", "investment_horizon_years": 20}'
+```
+
 ## Package API
 
 ```python

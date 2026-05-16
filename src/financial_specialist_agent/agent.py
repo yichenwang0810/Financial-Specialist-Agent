@@ -1,5 +1,6 @@
+import json
 import os
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 try:
     import openai
@@ -24,6 +25,120 @@ class FinancialSpecialistAgent:
             "credit and debt management, insurance, tax strategy, and long-term financial wellness. "
             "Always include actionable suggestions and explain trade-offs when appropriate. "
             "If the user asks for something you cannot answer, acknowledge the limitation and encourage them to seek a licensed professional."
+        )
+
+    def analyze_budget(self, monthly_income: float, expense_breakdown: Dict[str, float]) -> str:
+        if monthly_income <= 0:
+            return "Monthly income must be a positive number."
+
+        total_expenses = sum(expense_breakdown.values())
+        savings_rate = max(0.0, (monthly_income - total_expenses) / monthly_income)
+        savings_target = 0.2
+        shortfall = total_expenses - monthly_income
+
+        message_lines = [
+            f"Total monthly income: ${monthly_income:,.2f}",
+            f"Total monthly expenses: ${total_expenses:,.2f}",
+            f"Current savings rate: {savings_rate * 100:.1f}%",
+        ]
+
+        if shortfall > 0:
+            message_lines.append(
+                "Your spending exceeds your income, so prioritize cutting discretionary expenses and increasing income where possible."
+            )
+        elif savings_rate < savings_target:
+            message_lines.append(
+                "Your savings rate is below recommended levels. Look for ways to increase savings by reducing nonessential spending and automating contributions."
+            )
+        else:
+            message_lines.append(
+                "Your savings rate is healthy. Continue monitoring recurring expenses and build toward larger goals like emergency savings and retirement."
+            )
+
+        categories = {
+            "housing": 0.30,
+            "transportation": 0.15,
+            "food": 0.15,
+            "insurance": 0.10,
+            "savings": 0.20,
+        }
+        for category, threshold in categories.items():
+            if expense_breakdown.get(category, 0) / monthly_income > threshold:
+                message_lines.append(
+                    f"Your {category} spending is more than {int(threshold * 100)}% of income; consider whether that category can be optimized."
+                )
+
+        return "\n".join(message_lines)
+
+    def estimate_retirement_savings(
+        self,
+        current_age: int,
+        retirement_age: int,
+        current_savings: float,
+        monthly_contribution: float,
+        annual_return: float = 0.06,
+    ) -> str:
+        if retirement_age <= current_age:
+            return "Retirement age must be greater than current age."
+        if monthly_contribution < 0 or current_savings < 0:
+            return "Savings and contribution values must be non-negative."
+
+        months = (retirement_age - current_age) * 12
+        monthly_rate = annual_return / 12
+
+        if monthly_rate:
+            future_value = current_savings * (1 + monthly_rate) ** months
+            future_value += monthly_contribution * (((1 + monthly_rate) ** months - 1) / monthly_rate)
+        else:
+            future_value = current_savings + monthly_contribution * months
+
+        guidance = (
+            f"At age {current_age}, saving ${monthly_contribution:,.2f} per month until age {retirement_age} "
+            f"with an assumed annual return of {annual_return * 100:.1f}% would grow to approximately ${future_value:,.2f}."
+        )
+        guidance += "\nA common rule of thumb is to target 25x your expected annual retirement expenses, but your personal goal should reflect your lifestyle and any guaranteed income sources."
+        guidance += "\nReview contribution increases regularly and adjust when your income or goals change."
+        return guidance
+
+    def debt_repayment_strategy(self, debts: List[Dict[str, Any]], extra_payment: float = 0.0) -> str:
+        if not debts:
+            return "Provide at least one debt entry with balance and interest rate to generate a repayment strategy."
+
+        sorted_debts = sorted(debts, key=lambda debt: debt.get("rate", 0), reverse=True)
+        strategy = [
+            "Use a high-interest first repayment strategy to minimize total interest paid. "
+            "Make minimum payments on all debts, then apply extra cash toward the debt with the highest interest rate."
+        ]
+
+        for debt in sorted_debts:
+            name = debt.get("name", "debt")
+            balance = debt.get("balance", 0)
+            rate = debt.get("rate", 0)
+            strategy.append(
+                f"- {name}: ${balance:,.2f} at {rate:.2f}% interest"
+            )
+
+        if extra_payment > 0:
+            strategy.append(
+                f"Add an extra ${extra_payment:,.2f} payment toward the highest-rate debt each month to accelerate payoff."
+            )
+
+        strategy.append(
+            "Review your budget, consider refinancing only when fees are justified, and avoid adding new high-interest balances while you pay down debt."
+        )
+        return "\n".join(strategy)
+
+    def generate_asset_allocation(self, risk_tolerance: str, investment_horizon_years: int) -> str:
+        risk = risk_tolerance.strip().lower()
+        allocation = {
+            "conservative": "40% equities, 50% bonds, 10% cash or short-duration fixed income",
+            "moderate": "60% equities, 30% bonds, 10% cash or short-duration fixed income",
+            "aggressive": "80% equities, 15% bonds, 5% cash or short-duration fixed income",
+        }
+        recommendation = allocation.get(risk, allocation["moderate"])
+        return (
+            f"With a {risk_tolerance} risk tolerance and a {investment_horizon_years}-year horizon, a recommended starting allocation is {recommendation}. "
+            "Adjust the mix over time, rebalance annually, and choose low-cost funds aligned with your goals."
         )
 
     def ask(self, question: str) -> str:
