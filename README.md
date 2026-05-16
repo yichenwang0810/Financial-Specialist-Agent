@@ -44,6 +44,12 @@ Start an interactive session:
 python -m financial_specialist_agent.cli --interactive
 ```
 
+Start a guided financial assessment:
+
+```bash
+python -m financial_specialist_agent.cli --survey
+```
+
 Run a budget analysis task:
 
 ```bash

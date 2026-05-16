@@ -41,3 +41,7 @@ class TestFinancialSpecialistAgent(unittest.TestCase):
         agent = FinancialSpecialistAgent()
         result = agent.generate_asset_allocation("conservative", 5)
         self.assertIn("40% equities", result.lower())
+
+    def test_interactive_assessment_is_callable(self):
+        agent = FinancialSpecialistAgent()
+        self.assertTrue(callable(agent.interactive_assessment))

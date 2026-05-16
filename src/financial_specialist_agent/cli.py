@@ -29,6 +29,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
     )
     parser.add_argument(
+        "--survey",
+        help="Start an interactive financial assessment questionnaire.",
+        action="store_true",
+    )
+    parser.add_argument(
         "--api-key",
         help="OpenAI API key to use for responses. If omitted, OPENAI_API_KEY is read from the environment.",
         type=str,
@@ -48,6 +53,10 @@ def main() -> None:
 
     if args.interactive:
         agent.interactive()
+        return
+
+    if args.survey:
+        agent.interactive_assessment()
         return
 
     params = {}

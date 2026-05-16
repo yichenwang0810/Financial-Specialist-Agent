@@ -204,6 +204,57 @@ class FinancialSpecialistAgent:
             "Please provide a few details about your goals or the financial area you want help with so I can give actionable advice."
         )
 
+    def _prompt_float(self, prompt: str, allow_zero: bool = True) -> float:
+        while True:
+            value = input(prompt).strip()
+            if not value:
+                return 0.0
+            try:
+                number = float(value)
+                if number < 0 or (not allow_zero and number == 0):
+                    print("Please enter a valid positive number.")
+                    continue
+                return number
+            except ValueError:
+                print("Please enter a valid number.")
+
+    def _prompt_int(self, prompt: str, minimum: int = 0) -> int:
+        while True:
+            value = input(prompt).strip()
+            if not value:
+                return 0
+            try:
+                number = int(value)
+                if number < minimum:
+                    print(f"Please enter an integer greater than or equal to {minimum}.")
+                    continue
+                return number
+            except ValueError:
+                print("Please enter a valid integer.")
+
+    def _prompt_expense_breakdown(self) -> Dict[str, float]:
+        print("Enter monthly expenses by category. Leave the category blank when finished.")
+        expenses: Dict[str, float] = {}
+        while True:
+            category = input("Category: ").strip()
+            if not category:
+                break
+            amount = self._prompt_float(f"Amount for {category}: ", allow_zero=False)
+            expenses[category.lower()] = amount
+        return expenses
+
+    def _prompt_debts(self) -> List[Dict[str, Any]]:
+        print("Enter debts one at a time. Leave the debt name blank when finished.")
+        debts: List[Dict[str, Any]] = []
+        while True:
+            name = input("Debt name: ").strip()
+            if not name:
+                break
+            balance = self._prompt_float(f"Balance for {name}: ", allow_zero=False)
+            rate = self._prompt_float(f"Interest rate (percent) for {name}: ", allow_zero=False)
+            debts.append({"name": name, "balance": balance, "rate": rate})
+        return debts
+
     def interactive(self) -> None:
         print("Financial Specialist Agent Interactive Mode")
         print("Type 'exit' or 'quit' to leave.\n")
@@ -217,3 +268,65 @@ class FinancialSpecialistAgent:
                 print("Goodbye.")
                 break
             print("\n", self.ask(question), "\n")
+
+    def interactive_assessment(self) -> None:
+        print("Financial Specialist Agent Assessment Mode")
+        print("Choose a task to complete a guided financial assessment.\n")
+
+        while True:
+            print("1) Budget assessment")
+            print("2) Retirement projection")
+            print("3) Debt repayment strategy")
+            print("4) Asset allocation recommendation")
+            print("5) Ask a general financial question")
+            print("0) Exit\n")
+
+            choice = input("Select an option: ").strip()
+            if choice in {"0", "exit", "quit"}:
+                print("Goodbye.")
+                break
+
+            if choice == "1":
+                income = self._prompt_float("Monthly income: ", allow_zero=False)
+                expenses = self._prompt_expense_breakdown()
+                print("\n" + self.analyze_budget(income, expenses) + "\n")
+                continue
+
+            if choice == "2":
+                current_age = self._prompt_int("Current age: ", minimum=0)
+                retirement_age = self._prompt_int("Retirement age: ", minimum=0)
+                current_savings = self._prompt_float("Current retirement savings: ")
+                monthly_contribution = self._prompt_float("Planned monthly contribution: ")
+                annual_return = self._prompt_float("Expected annual return (as decimal, e.g. 0.06): ")
+                print(
+                    "\n" +
+                    self.estimate_retirement_savings(
+                        current_age,
+                        retirement_age,
+                        current_savings,
+                        monthly_contribution,
+                        annual_return or 0.06,
+                    ) +
+                    "\n"
+                )
+                continue
+
+            if choice == "3":
+                debts = self._prompt_debts()
+                extra_payment = self._prompt_float("Extra monthly payment amount: ")
+                print("\n" + self.debt_repayment_strategy(debts, extra_payment) + "\n")
+                continue
+
+            if choice == "4":
+                risk_tolerance = input("Risk tolerance (conservative/moderate/aggressive): ").strip() or "moderate"
+                horizon = self._prompt_int("Investment horizon in years: ", minimum=0)
+                print("\n" + self.generate_asset_allocation(risk_tolerance, horizon or 10) + "\n")
+                continue
+
+            if choice == "5":
+                question = input("What do you want to know? ").strip()
+                if question:
+                    print("\n" + self.ask(question) + "\n")
+                continue
+
+            print("Please choose a valid option from the menu.\n")
