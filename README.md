@@ -74,6 +74,34 @@ Create an asset allocation recommendation:
 python -m financial_specialist_agent.cli --task allocation --params '{"risk_tolerance": "moderate", "investment_horizon_years": 20}'
 ```
 
+Plan a savings goal:
+
+```bash
+python -m financial_specialist_agent.cli --task savings --params '{"goal_amount": 50000, "current_savings": 10000, "monthly_contribution": 750, "annual_return": 0.05}'
+```
+
+Summarize net worth:
+
+```bash
+python -m financial_specialist_agent.cli --task networth --params '{"assets": {"home": 250000, "investment": 40000}, "liabilities": {"mortgage": 180000, "car_loan": 12000}}'
+```
+
+Forecast cash flow:
+
+```bash
+python -m financial_specialist_agent.cli --task cashflow --params '{"monthly_income": 5500, "monthly_expenses": {"housing": 1600, "utilities": 300, "food": 600, "transportation": 350}, "months": 12}'
+```
+
+Assess insurance needs:
+
+```bash
+python -m financial_specialist_agent.cli --task insurance --params '{"annual_income": 90000, "dependents": 2, "assets_value": 150000, "has_life_insurance": false}'
+```
+
+```bash
+python -m financial_specialist_agent.cli --task allocation --params '{"risk_tolerance": "moderate", "investment_horizon_years": 20}'
+```
+
 ## Package API
 
 ```python

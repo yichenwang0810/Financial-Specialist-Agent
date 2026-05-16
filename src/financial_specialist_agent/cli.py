@@ -14,8 +14,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--task",
-        help="Run a specific financial analysis task: budget, retirement, debt, or allocation.",
-        choices=["question", "budget", "retirement", "debt", "allocation"],
+        help="Run a specific financial analysis task: budget, retirement, debt, allocation, savings, networth, insurance, or cashflow.",
+        choices=["question", "budget", "retirement", "debt", "allocation", "savings", "networth", "insurance", "cashflow"],
         default="question",
     )
     parser.add_argument(
@@ -94,6 +94,37 @@ def main() -> None:
 
     if args.task == "allocation":
         print(agent.generate_asset_allocation(params.get("risk_tolerance", "moderate"), params.get("investment_horizon_years", 10)))
+        return
+
+    if args.task == "savings":
+        print(agent.plan_savings_goal(
+            params.get("goal_amount", 0.0),
+            params.get("current_savings", 0.0),
+            params.get("monthly_contribution", 0.0),
+            params.get("annual_return", 0.05),
+            params.get("target_months"),
+        ))
+        return
+
+    if args.task == "networth":
+        print(agent.summarize_net_worth(params.get("assets", {}), params.get("liabilities", {})))
+        return
+
+    if args.task == "cashflow":
+        print(agent.forecast_cash_flow(
+            params.get("monthly_income", 0.0),
+            params.get("monthly_expenses", {}),
+            params.get("months", 12),
+        ))
+        return
+
+    if args.task == "insurance":
+        print(agent.evaluate_insurance_needs(
+            params.get("annual_income", 0.0),
+            params.get("dependents", 0),
+            params.get("assets_value", 0.0),
+            params.get("has_life_insurance", False),
+        ))
         return
 
     print("Please provide --question, --interactive, or a valid task to use the financial agent.")

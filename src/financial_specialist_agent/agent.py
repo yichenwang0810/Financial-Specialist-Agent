@@ -141,6 +141,138 @@ class FinancialSpecialistAgent:
             "Adjust the mix over time, rebalance annually, and choose low-cost funds aligned with your goals."
         )
 
+    def plan_savings_goal(
+        self,
+        goal_amount: float,
+        current_savings: float,
+        monthly_contribution: float,
+        annual_return: float = 0.05,
+        target_months: Optional[int] = None,
+    ) -> str:
+        if goal_amount <= 0 or current_savings < 0 or monthly_contribution < 0:
+            return "Goal amount and savings values must be non-negative, and goal amount must be positive."
+
+        if target_months and target_months <= 0:
+            return "Target months must be a positive integer."
+
+        monthly_rate = annual_return / 12
+        if target_months:
+            needed = goal_amount - current_savings * (1 + monthly_rate) ** target_months
+            if monthly_rate:
+                required_payment = needed * monthly_rate / ((1 + monthly_rate) ** target_months - 1)
+            else:
+                required_payment = needed / target_months
+            required_payment = max(required_payment, 0.0)
+            return (
+                f"To reach a ${goal_amount:,.2f} goal in {target_months} months with ${current_savings:,.2f} already saved, "
+                f"you would need to save about ${required_payment:,.2f} per month at an assumed {annual_return * 100:.1f}% annual return."
+            )
+
+        months = 0
+        balance = current_savings
+        while balance < goal_amount and months < 1200:
+            balance = balance * (1 + monthly_rate) + monthly_contribution
+            months += 1
+
+        if balance < goal_amount:
+            return (
+                "With the current monthly contribution and return assumptions, this savings goal would take longer than 100 years to reach. "
+                "Consider increasing your monthly contribution or reviewing the target amount."
+            )
+
+        return (
+            f"At ${monthly_contribution:,.2f} per month and an assumed {annual_return * 100:.1f}% annual return, "
+            f"you can reach ${goal_amount:,.2f} in about {months} months (around {months // 12} years and {months % 12} months)."
+        )
+
+    def summarize_net_worth(self, assets: Dict[str, float], liabilities: Dict[str, float]) -> str:
+        total_assets = sum(assets.values())
+        total_liabilities = sum(liabilities.values())
+        net_worth = total_assets - total_liabilities
+        debt_ratio = total_liabilities / total_assets if total_assets else 0.0
+
+        summary = [
+            f"Total assets: ${total_assets:,.2f}",
+            f"Total liabilities: ${total_liabilities:,.2f}",
+            f"Net worth: ${net_worth:,.2f}",
+            f"Debt-to-asset ratio: {debt_ratio * 100:.1f}%",
+        ]
+
+        if net_worth < 0:
+            summary.append(
+                "Your net worth is negative, which means liabilities exceed assets. Focus on reducing high-interest debt and building savings."
+            )
+        elif debt_ratio > 0.5:
+            summary.append(
+                "More than half of your assets are funded by liabilities. Consider paying down debt and strengthening savings."
+            )
+        else:
+            summary.append(
+                "Your net worth is positive, and your asset base is more than your liabilities. Continue growing assets while maintaining manageable debt levels."
+            )
+
+        return "\n".join(summary)
+
+    def forecast_cash_flow(
+        self,
+        monthly_income: float,
+        monthly_expenses: Dict[str, float],
+        months: int = 12,
+    ) -> str:
+        if monthly_income < 0 or months <= 0:
+            return "Monthly income must be non-negative and months must be a positive integer."
+
+        total_expenses = sum(monthly_expenses.values())
+        monthly_surplus = monthly_income - total_expenses
+        forecast = monthly_surplus * months
+        summary = [
+            f"Monthly income: ${monthly_income:,.2f}",
+            f"Monthly expenses: ${total_expenses:,.2f}",
+            f"Monthly surplus (income minus expenses): ${monthly_surplus:,.2f}",
+            f"Projected surplus over {months} months: ${forecast:,.2f}",
+        ]
+
+        if monthly_surplus < 0:
+            summary.append(
+                "Your expenses exceed income. Review discretionary spending and consider options to increase income to avoid cash flow pressure."
+            )
+        else:
+            summary.append(
+                "A positive monthly surplus gives you flexibility to save, invest, or pay down debt. Keep tracking expenses and adjust as needed."
+            )
+
+        return "\n".join(summary)
+
+    def evaluate_insurance_needs(
+        self,
+        annual_income: float,
+        dependents: int,
+        assets_value: float,
+        has_life_insurance: bool = False,
+    ) -> str:
+        if annual_income < 0 or dependents < 0 or assets_value < 0:
+            return "Income, dependents, and asset values must be non-negative."
+
+        needed_coverage = annual_income * max(10, dependents * 5)
+        summary = [
+            f"Estimated life insurance coverage need: ${needed_coverage:,.2f}",
+            f"Current asset base: ${assets_value:,.2f}",
+        ]
+
+        if has_life_insurance:
+            summary.append(
+                "Since you already have life insurance coverage, review your policy annually to ensure it scales with your income and family needs."
+            )
+        else:
+            summary.append(
+                "Consider life insurance if you have dependents or debts that others would need to cover if your income were lost."
+            )
+
+        summary.append(
+            "Also verify that you have sufficient property, disability, and health coverage for your situation, especially if you have major assets or dependents."
+        )
+        return "\n".join(summary)
+
     def ask(self, question: str) -> str:
         question = question.strip()
         if not question:
@@ -278,7 +410,11 @@ class FinancialSpecialistAgent:
             print("2) Retirement projection")
             print("3) Debt repayment strategy")
             print("4) Asset allocation recommendation")
-            print("5) Ask a general financial question")
+            print("5) Plan a savings goal")
+            print("6) Net worth summary")
+            print("7) Cash flow forecast")
+            print("8) Insurance needs assessment")
+            print("9) Ask a general financial question")
             print("0) Exit\n")
 
             choice = input("Select an option: ").strip()
@@ -324,6 +460,48 @@ class FinancialSpecialistAgent:
                 continue
 
             if choice == "5":
+                goal_amount = self._prompt_float("Savings goal amount: ", allow_zero=False)
+                current_savings = self._prompt_float("Current savings: ")
+                monthly_contribution = self._prompt_float("Monthly contribution: ")
+                annual_return = self._prompt_float("Expected annual return (as decimal, e.g. 0.05): ")
+                target_months = self._prompt_int("Target months (leave blank to calculate time to goal): ", minimum=0)
+                print("\n" + self.plan_savings_goal(goal_amount, current_savings, monthly_contribution, annual_return or 0.05, target_months or None) + "\n")
+                continue
+
+            if choice == "6":
+                print("Enter asset values. Leave the asset name blank when finished.")
+                assets = {}
+                while True:
+                    name = input("Asset name: ").strip()
+                    if not name:
+                        break
+                    assets[name.lower()] = self._prompt_float(f"Value for {name}: ", allow_zero=False)
+                print("Enter liability values. Leave the liability name blank when finished.")
+                liabilities = {}
+                while True:
+                    name = input("Liability name: ").strip()
+                    if not name:
+                        break
+                    liabilities[name.lower()] = self._prompt_float(f"Value for {name}: ", allow_zero=False)
+                print("\n" + self.summarize_net_worth(assets, liabilities) + "\n")
+                continue
+
+            if choice == "7":
+                income = self._prompt_float("Monthly income: ", allow_zero=False)
+                expenses = self._prompt_expense_breakdown()
+                months = self._prompt_int("Forecast months: ", minimum=1)
+                print("\n" + self.forecast_cash_flow(income, expenses, months or 12) + "\n")
+                continue
+
+            if choice == "8":
+                annual_income = self._prompt_float("Annual income: ", allow_zero=False)
+                dependents = self._prompt_int("Number of dependents: ", minimum=0)
+                assets_value = self._prompt_float("Total asset value: ")
+                has_life_insurance = input("Do you currently have life insurance? (yes/no): ").strip().lower() in {"yes", "y"}
+                print("\n" + self.evaluate_insurance_needs(annual_income, dependents, assets_value, has_life_insurance) + "\n")
+                continue
+
+            if choice == "9":
                 question = input("What do you want to know? ").strip()
                 if question:
                     print("\n" + self.ask(question) + "\n")

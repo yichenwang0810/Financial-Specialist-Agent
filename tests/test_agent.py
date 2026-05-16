@@ -42,6 +42,26 @@ class TestFinancialSpecialistAgent(unittest.TestCase):
         result = agent.generate_asset_allocation("conservative", 5)
         self.assertIn("40% equities", result.lower())
 
+    def test_plan_savings_goal_with_target(self):
+        agent = FinancialSpecialistAgent()
+        result = agent.plan_savings_goal(50000, 10000, 750, 0.05, 60)
+        self.assertIn("reach a $50,000.00 goal", result)
+
+    def test_summarize_net_worth_positive(self):
+        agent = FinancialSpecialistAgent()
+        result = agent.summarize_net_worth({"home": 250000, "investments": 50000}, {"mortgage": 180000, "car": 10000})
+        self.assertIn("net worth: $110,000.00", result.lower())
+
+    def test_forecast_cash_flow_positive(self):
+        agent = FinancialSpecialistAgent()
+        result = agent.forecast_cash_flow(5000, {"housing": 1500, "food": 600}, 12)
+        self.assertIn("projected surplus over 12 months", result.lower())
+
+    def test_evaluate_insurance_needs(self):
+        agent = FinancialSpecialistAgent()
+        result = agent.evaluate_insurance_needs(85000, 2, 120000, False)
+        self.assertIn("estimated life insurance coverage need", result.lower())
+
     def test_interactive_assessment_is_callable(self):
         agent = FinancialSpecialistAgent()
         self.assertTrue(callable(agent.interactive_assessment))
